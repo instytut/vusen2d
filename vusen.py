@@ -1,7 +1,31 @@
 from PyQt5.QtWidgets import QWidget, QApplication, QVBoxLayout, QLabel, QPushButton
 from PyQt5.QtGui import QPainter, QPen, QImage, QPixmap
-from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable
-import sys
+from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool, QTimer
+import time
+import traceback, sys
+
+class Point:
+    def __init__(self, x=0, y=0, color=0):
+        self.x = x
+        self.y = y
+        self.color = color
+
+    def __print__(self):
+        print('(', self.x, ',', self.y, ':', self.color, ')')
+
+    def draw(self, QPainter):
+        pass
+
+
+
+class Line:
+    def __init__(self, p0, length=0, phi=0, color=0):
+        pass
+
+
+
+
+
 
 class WorkerSignals(QObject):
     '''
@@ -93,7 +117,7 @@ class MainWindow(QWidget):
         self.l.setAlignment(Qt.AlignCenter)
 
         b = QPushButton("DANGER!")
-        #b.pressed.connect(self.oh_no)
+        b.pressed.connect(self.oh_no)
 
         layout.addWidget(self.l)
         layout.addWidget(b)
@@ -102,6 +126,14 @@ class MainWindow(QWidget):
         self.setLayout(layout)
 
         self.initUI()
+
+        self.threadpool = QThreadPool()
+        print("Multithreading with maximum %d threads" % self.threadpool.maxThreadCount())
+
+        self.timer = QTimer()
+        self.timer.setInterval(1000)
+        self.timer.timeout.connect(self.recurring_timer)
+        self.timer.start()
 
     def initUI(self):
         self.setGeometry(300, 300, 280, 270)
@@ -112,6 +144,50 @@ class MainWindow(QWidget):
         if not self.image.isNull():
             self.l.setPixmap(
                 QPixmap.fromImage(self.image).scaled(self.l.size(), Qt.KeepAspectRatio, Qt.FastTransformation))
+
+    def startPaint(self):
+        # Pass the function to execute
+        worker = Worker(self.execute_this_fn) # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_complete)
+        worker.signals.progress.connect(self.progress_fn)
+
+    def progress_fn(self, n):
+        print("%d%% done" % n)
+
+    def execute_this_fn(self, progress_callback):
+        for n in range(0, 5):
+            time.sleep(1)
+            progress_callback.emit(n*100/4)
+
+        return "Done."
+
+    def print_output(self, s):
+        print(s)
+
+    def thread_complete(self):
+        print("THREAD COMPLETE!")
+
+    def oh_no(self):
+        # Pass the function to execute
+        worker = Worker(self.execute_this_fn) # Any other args, kwargs are passed to the run function
+        worker.signals.result.connect(self.print_output)
+        worker.signals.finished.connect(self.thread_complete)
+        worker.signals.progress.connect(self.progress_fn)
+
+        # Execute
+        self.threadpool.start(worker)
+
+
+    def recurring_timer(self):
+        self.counter += 1
+        qp = QPainter()
+        qp.begin(self.image)
+        pen = QPen(Qt.black, 2, Qt.SolidLine)
+        qp.setPen(pen)
+        qp.drawLine(20, 20, 100, 100 + self.counter)
+        qp.end()
+        self.l.setText("Counter: %d" % self.counter)
 
 
 if __name__ == '__main__':
