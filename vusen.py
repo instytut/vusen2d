@@ -3,9 +3,14 @@ from PyQt5.QtGui import QPainter, QPen, QImage, QPixmap
 from PyQt5.QtCore import Qt, QObject, pyqtSignal, pyqtSlot, QRunnable, QThreadPool, QTimer
 import time
 import traceback, sys
+import numpy as np
 
 class Point:
-    def __init__(self, x=0, y=0, color=0):
+    def __init__(self, x: float = 0, y: float = 0, color: int = 0) -> object:
+        """
+
+        :type y: float
+        """
         self.x = x
         self.y = y
         self.color = color
@@ -13,18 +18,61 @@ class Point:
     def __print__(self):
         print('(', self.x, ',', self.y, ':', self.color, ')')
 
-    def draw(self, QPainter):
-        pass
-
+    def draw(self, qp):
+        qp.setPen(self.color)
+        qp.drawPoint(self.x, self.y)
 
 
 class Line:
-    def __init__(self, p0, length=0, phi=0, color=0):
-        pass
+    def __init__(self, p0, length=0, phi=0, color=0, p1=None):
+        self.p0 = p0
+        self.length = length
+        self.phi = phi
+        self.color = color
+        if p1 is None:
+            p1 = Point(p0.x + length*/np.cos(phi), p0.y+length*np.sin(phi))
+        self.p = [p0, p1]
+
+    def __print__(self):
+        print('((', self.p[0].x, ',', self.p[0].y, ')-(', self.p[1].x, ',', self.p[1].y, '):', self.color, ')')
+
+    def draw(self, qp):
+        qp.setPen(self.color)
+        qp.drawLine(self.p[0].x, self.p[0].y, self.p[1].x, self.p[1].y)
+
+class Square:
+    def __init__(self, l0, color=0):
+        self.l0 = l0
+        self.color = color
+        dx = l0.p[1].x - l0.p[0].x
+        dy = l0.p[1].y - l0.p[0].y
+        p3 = Point(l0.p[1].x-dy,l0.p[1].y+dx)
+        p4 = Point(l0.p[0].x - dy, l0.p[0].y + dx)
+        self.p = [self.l0.p0, self.l0.p[1], p3, p4]
+        l1 = Line(self.p[1], self.l0.length, self.l0.phi + np.pi / 2, color, self.p[2])
+        l2 = Line(self.p[2], self.l0.length, -self.l0.phi, color, self.p[3])
+        l3 = Line(self.p[3], self.l0.length, self.l0.phi - np.pi / 2, color, self.p[0])
+        self.l = [l0,l1,l2,l3]
+
+    def __print__(self):
+        print('(<', self.p[0].x, ',', self.p[0].y, '>-<', self.p[2].x, ',', self.p[2].y, '>:', self.color, ')')
+
+    def draw(self, qp):
+        for line in self.l:
+            line.draw(qp)
+
+class Rod:
+    def __init__(self, s0, color=0):
+        self.s0 = s0
+        self.color = color
 
 
+    def __print__(self):
+        print('(<', self.p[0].x, ',', self.p[0].y, '>-<', self.p[2].x, ',', self.p[2].y, '>:', self.color, ')')
 
-
+    def draw(self, qp):
+        qp.setPen(self.color)
+        qp.drawLine(self.p[0].x, self.p[0].y, self.p[1].x, self.p[1].y)
 
 
 class WorkerSignals(QObject):
