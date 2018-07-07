@@ -30,7 +30,7 @@ class Line:
         self.phi = phi
         self.color = color
         if p1 is None:
-            p1 = Point(p0.x + length*/np.cos(phi), p0.y+length*np.sin(phi))
+            p1 = Point(p0.x + length*np.cos(phi), p0.y+length*np.sin(phi))
         self.p = [p0, p1]
 
     def __print__(self):
@@ -61,18 +61,26 @@ class Square:
         for line in self.l:
             line.draw(qp)
 
+    def nextSquare(self, angle):
+        l0 = Line(self.p[3],self.l0.length,self.l0.phi+angle,self.l0.color)
+        return Square(l0,self.color)
+
 class Rod:
-    def __init__(self, s0, color=0):
+    def __init__(self, s0, angles,  color=0):
         self.s0 = s0
+        self.angles = angles
         self.color = color
+        self.sq = [s0]
+        for angle in angles:
+            self.sq.append(self.sq[-1].nextSquare(angle))
 
 
     def __print__(self):
         print('(<', self.p[0].x, ',', self.p[0].y, '>-<', self.p[2].x, ',', self.p[2].y, '>:', self.color, ')')
 
     def draw(self, qp):
-        qp.setPen(self.color)
-        qp.drawLine(self.p[0].x, self.p[0].y, self.p[1].x, self.p[1].y)
+        for sq in self.sq:
+            sq.draw(qp)
 
 
 class WorkerSignals(QObject):
